@@ -108,3 +108,18 @@ build*/
 */build*
 *.pro.user
 *.pro.user.*
+
+# Qt Creator build directories
+SerialTerminal/build*/
+*/build-*
+
+# Qt Creator clangd cache
+.qtc_clangd/
+*.qtc_clangd*
+
+# Qt Creator user settings
+*.pro.user*
+*.autosave
+
+# Compiled executables
+SerialTerminal/SerialTerminal
