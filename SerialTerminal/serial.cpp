@@ -93,17 +93,55 @@ bool SerialPort::setup_port(int baudrate) {
 
     cfsetospeed(&tty, speed);
     cfsetispeed(&tty, speed);
-    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;
+
+    tty.c_cflag &= ~CSIZE;
+    switch (dataBits_) {
+    case 5: tty.c_cflag |= CS5; break;
+    case 6: tty.c_cflag |= CS6; break;
+    case 7: tty.c_cflag |= CS7; break;
+    case 8: tty.c_cflag |= CS8; break;
+    default: tty.c_cflag |= CS8; break;
+    }
+
+    if (parity_ == "None") {
+        tty.c_cflag &= ~(PARENB | PARODD);
+    } else {
+        if (parity_ == "Even") {
+            tty.c_cflag &= ~PARODD;
+            tty.c_cflag |= PARENB;
+        } else if (parity_ == "Odd") {
+            tty.c_cflag |= (PARENB | PARODD);
+        } else if (parity_ == "Space") {
+            tty.c_cflag &= ~PARODD;
+            tty.c_cflag |= (PARENB | CMSPAR);
+        } else if (parity_ == "Mark") {
+            tty.c_cflag |= (PARENB | PARODD | CMSPAR);
+        }
+    }
+
+    if (stopBits_ == 2) {
+        tty.c_cflag |= CSTOPB;
+    } else {
+        tty.c_cflag &= ~CSTOPB;
+    }
+
+    if (flowControl_ == "Hardware") {
+        tty.c_cflag |= CRTSCTS;
+        tty.c_iflag &= ~(IXON | IXOFF | IXANY);
+    } else if (flowControl_ == "Software") {
+        tty.c_cflag &= ~CRTSCTS;
+        tty.c_iflag |= (IXON | IXOFF | IXANY);
+    } else {
+        tty.c_cflag &= ~CRTSCTS;
+        tty.c_iflag &= ~(IXON | IXOFF | IXANY);
+    }
+
     tty.c_iflag &= ~IGNBRK;
     tty.c_lflag = 0;
     tty.c_oflag = 0;
-    tty.c_cc[VMIN]  = 0;
+    tty.c_cc[VMIN] = 0;
     tty.c_cc[VTIME] = 5;
-    tty.c_iflag &= ~(IXON | IXOFF | IXANY);
     tty.c_cflag |= (CLOCAL | CREAD);
-    tty.c_cflag &= ~(PARENB | PARODD);
-    tty.c_cflag &= ~CSTOPB;
-    tty.c_cflag &= ~CRTSCTS;
 
     return tcsetattr(fd_, TCSANOW, &tty) == 0;
 }

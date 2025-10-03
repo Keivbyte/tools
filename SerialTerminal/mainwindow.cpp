@@ -23,7 +23,21 @@ MainWindow::MainWindow(QWidget *parent)
 
     combobox_port_set();
     fillBaudrateComboBox();
+    fillDataBitsComboBox();
+    fillParityComboBox();
+    fillStopBitsComboBox();
+    fillFlowControlComboBox();
     updateConnectionButton();
+
+    for (int i = 0; i < 20; i++) {
+        QPushButton *btn = findChild<QPushButton*>(QString("macroButton%1").arg(i + 1));
+        if (btn) {
+            connect(btn, &QPushButton::clicked, this, &MainWindow::onMacroButtonClicked);
+            macroButtons.append(btn);
+        }
+    }
+
+    macrosDialog = new MacrosDialog(this);
 }
 
 MainWindow::~MainWindow()
@@ -48,10 +62,19 @@ void MainWindow::on_comboBox_port_currentIndexChanged(int index){
 void MainWindow::on_pushButton_clicked() {
     if (!isConnected_) {
         if (serial_.connect(selectedBaudrate_)) {
+            serial_.setDataBits(selectedDataBits_);
+            serial_.setParity(selectedParity_.toStdString());
+            serial_.setStopBits(selectedStopBits_);
+            serial_.setFlowControl(selectedFlowControl_.toStdString());
             isConnected_ = true;
             updateConnectionButton();
+
             ui->comboBox_port->setEnabled(false);
             ui->comboBox_baudrate->setEnabled(false);
+            ui->comboBox_databits->setEnabled(false);
+            ui->comboBox_parity->setEnabled(false);
+            ui->comboBox_stopbits->setEnabled(false);
+            ui->comboBox_flowControl->setEnabled(false);
         }
     } else {
         serialTimer_->stop();
@@ -60,6 +83,10 @@ void MainWindow::on_pushButton_clicked() {
         updateConnectionButton();
         ui->comboBox_port->setEnabled(true);
         ui->comboBox_baudrate->setEnabled(true);
+        ui->comboBox_databits->setEnabled(true);
+        ui->comboBox_parity->setEnabled(true);
+        ui->comboBox_stopbits->setEnabled(true);
+        ui->comboBox_flowControl->setEnabled(true);
     }
 }
 
@@ -83,7 +110,41 @@ void MainWindow::fillBaudrateComboBox() {
     ui->comboBox_baudrate->addItem("38400", 38400);
     ui->comboBox_baudrate->addItem("115200", 115200);
     ui->comboBox_baudrate->addItem("2000000", 2000000);
-    ui->comboBox_baudrate->setCurrentText("2000000"); // по умолчанию
+    ui->comboBox_baudrate->setCurrentText("2000000");
+}
+
+void MainWindow::fillDataBitsComboBox() {
+    ui->comboBox_databits->clear();
+    ui->comboBox_databits->addItem("8", 8);
+    ui->comboBox_databits->addItem("7", 7);
+    ui->comboBox_databits->addItem("6", 6);
+    ui->comboBox_databits->addItem("5", 5);
+    ui->comboBox_databits->setCurrentText("8");
+}
+
+void MainWindow::fillParityComboBox() {
+    ui->comboBox_parity->clear();
+    ui->comboBox_parity->addItem("None", "None");
+    ui->comboBox_parity->addItem("Even", "Even");
+    ui->comboBox_parity->addItem("Odd", "Odd");
+    ui->comboBox_parity->addItem("Space", "Space");
+    ui->comboBox_parity->addItem("Mark", "Mark");
+    ui->comboBox_parity->setCurrentText("None");
+}
+
+void MainWindow::fillStopBitsComboBox() {
+    ui->comboBox_stopbits->clear();
+    ui->comboBox_stopbits->addItem("1", 1);
+    ui->comboBox_stopbits->addItem("2", 2);
+    ui->comboBox_stopbits->setCurrentText("1");
+}
+
+void MainWindow::fillFlowControlComboBox() {
+    ui->comboBox_flowControl->clear();
+    ui->comboBox_flowControl->addItem("None", "None");
+    ui->comboBox_flowControl->addItem("Hardware", "Hardware");
+    ui->comboBox_flowControl->addItem("Software", "Software");
+    ui->comboBox_flowControl->setCurrentText("None");
 }
 
 std::vector<uint8_t> MainWindow::parseHexString(const QString& text) {
@@ -111,9 +172,10 @@ void MainWindow::on_btn_send_clicked(){
         return;
     }
 
-    QString commandWithCounter = QString("%1 >>> %2").arg(counter_send).arg(text);
+    QString commandWithCounter = QString("%1").arg(text);
     ui->textBrowser_command->append(commandWithCounter);
-    counter_send++;
+
+    ui->le_counter->setText(QString("Count -> %1").arg(++counter_send));
 
     if (ui->rbtn_ascii->isChecked()) {
         serial_.send_ascii(text.toStdString());
@@ -143,7 +205,7 @@ void MainWindow::readSerialData() {
         QString data = QString::fromStdString(received);
         QStringList lines = data.split('\n', Qt::SkipEmptyParts);
 
-        QString formatted = "<<<\n";
+        QString formatted = "\n";
         for (const QString& line : lines) {
             QString trimmed = line.trimmed();
             if (!trimmed.isEmpty()) {
@@ -158,4 +220,69 @@ void MainWindow::readSerialData() {
     }
 }
 
+void MainWindow::on_comboBox_databits_currentIndexChanged(int index) {
+    Q_UNUSED(index)
+    selectedDataBits_ = ui->comboBox_databits->currentData().toInt();
+}
 
+void MainWindow::on_comboBox_parity_currentIndexChanged(int index) {
+    Q_UNUSED(index)
+    selectedParity_ = ui->comboBox_parity->currentText();
+}
+
+void MainWindow::on_comboBox_stopbits_currentIndexChanged(int index) {
+    Q_UNUSED(index)
+    selectedStopBits_ = ui->comboBox_stopbits->currentData().toInt();
+}
+
+void MainWindow::on_comboBox_flowControl_currentIndexChanged(int index) {
+    Q_UNUSED(index)
+    selectedFlowControl_ = ui->comboBox_flowControl->currentText();
+}
+
+void MainWindow::on_btn_clear_clicked(){
+    ui->textBrowser_command->clear();
+}
+
+void MainWindow::on_btn_setmacros_clicked() {
+    macrosDialog->show();
+}
+
+void MainWindow::onMacroButtonClicked() {
+    QPushButton *clickedBtn = qobject_cast<QPushButton*>(sender());
+    if (!clickedBtn) return;
+
+    QString btnName = clickedBtn->objectName();
+    if (!btnName.startsWith("macroButton")) return;
+
+    int macroNum = btnName.mid(11).toInt() - 1; // "macroButton" + number
+    if (macroNum < 0 || macroNum >= 20) return;
+
+    // Loading a macro from the settings
+    QSettings settings("macros.ini", QSettings::IniFormat);
+    QString text = settings.value(QString("Macro%1/text").arg(macroNum), "").toString();
+    int type = settings.value(QString("Macro%1/type").arg(macroNum), 0).toInt();
+
+    if (text.isEmpty()) return;
+
+    // send command
+    QString commandWithCounter = QString("%1 >>> %2").arg(counter_send).arg(text);
+    ui->textBrowser_command->append(commandWithCounter);
+    ui->le_counter->setText(QString("Count -> %1").arg(++counter_send));
+
+    if (type == 0) { // ASCII
+        serial_.send_ascii(text.toStdString());
+    } else { // HEX
+        std::vector<uint8_t> hex_data = parseHexString(text);
+        serial_.send_hex(hex_data);
+    }
+
+    if (isConnected_) {
+        serialTimer_->start(50);
+        QTimer::singleShot(250, this, [this]() {
+            if (isConnected_) {
+                serialTimer_->stop();
+            }
+        });
+    }
+}
