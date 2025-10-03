@@ -123,10 +123,15 @@ bool SerialPort::send_hex(const std::vector<uint8_t>& hex_data) {
 
 std::string SerialPort::receive() {
     if (fd_ < 0) return "";
-    std::vector<char> buf(256);
-    ssize_t n = ::read(fd_, buf.data(), buf.size());
-    if (n > 0) {
-        return std::string(buf.begin(), buf.begin() + n);
+
+    std::string result;
+    std::vector<char> buf(2048);
+
+    while (true) {
+        ssize_t n = ::read(fd_, buf.data(), buf.size());
+        if (n <= 0) break;
+        result += std::string(buf.begin(), buf.begin() + n);
     }
-    return "";
+
+    return result;
 }
