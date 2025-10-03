@@ -12,15 +12,19 @@ SOURCES += \
     macrosdialog.cpp \
     main.cpp \
     mainwindow.cpp \
+    scriptdialog.cpp \
     serial.cpp
 
 HEADERS += \
     macrosdialog.h \
     mainwindow.h \
+    scriptdialog.h \
     serial.h
 
 FORMS += \
     mainwindow.ui
+
+RESOURCES += ico.qrc
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

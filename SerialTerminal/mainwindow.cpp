@@ -9,6 +9,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     setWindowTitle("Serial Terminal");
+    setWindowIcon(QIcon(":/ico/icon.png"));
+
 
     buttonGroup_ = new QButtonGroup(this);
     buttonGroup_->addButton(ui->rbtn_ascii, 0);
@@ -38,12 +40,22 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     macrosDialog = new MacrosDialog(this);
+    scriptDialog = new ScriptDialog(this);
+
+    scriptDialog->setSerialPort(&serial_);
+
+    connect(scriptDialog, &ScriptDialog::sendToMainTerminal,
+            [this](const QString& text) {
+                ui->textBrowser_command->append(text);
+            });
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
     delete serialTimer_;
+    delete macrosDialog;
+    delete scriptDialog;
 }
 
 void MainWindow::combobox_port_set(){
@@ -266,9 +278,9 @@ void MainWindow::onMacroButtonClicked() {
     if (text.isEmpty()) return;
 
     // send command
-    QString commandWithCounter = QString("%1 >>> %2").arg(counter_send).arg(text);
+    QString commandWithCounter = QString("%1 >>> %2").arg(++counter_send).arg(text);
     ui->textBrowser_command->append(commandWithCounter);
-    ui->le_counter->setText(QString("Count -> %1").arg(++counter_send));
+    ui->le_counter->setText(QString("Count -> %1").arg(counter_send));
 
     if (type == 0) { // ASCII
         serial_.send_ascii(text.toStdString());
@@ -285,4 +297,12 @@ void MainWindow::onMacroButtonClicked() {
             }
         });
     }
+}
+
+void MainWindow::on_btn_script_clicked() {
+    if (!isConnected_) {
+        QMessageBox::warning(this, "Warning", "Not connected to device");
+        return;
+    }
+    scriptDialog->show();
 }

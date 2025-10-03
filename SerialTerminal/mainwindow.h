@@ -6,6 +6,7 @@
 #include <QTimer>
 #include "serial.h"
 #include "macrosdialog.h"
+#include "scriptdialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -35,6 +36,7 @@ private slots:
 
     void on_btn_setmacros_clicked();
     void onMacroButtonClicked();
+    void on_btn_script_clicked();
 
 private:
     Ui::MainWindow *ui;
@@ -50,6 +52,7 @@ private:
 
     MacrosDialog *macrosDialog;
     QVector<QPushButton*> macroButtons;
+    ScriptDialog *scriptDialog;
 
     void combobox_port_set();
     void updateConnectionButton();
