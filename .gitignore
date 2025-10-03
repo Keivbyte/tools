@@ -104,3 +104,7 @@ Thumbs.db
 doc/
 html/
 
+build*/
+*/build*
+*.pro.user
+*.pro.user.*
