@@ -88,34 +88,6 @@ end.
 
 ---
 
-## Project Structure
-
-```
-terminal_v1.9b/
-├── src/
-├── img/
-│   ├── photo_terminal_main.jpg
-│   └── photo_macros.jpg
-├── scripts/
-├── macros/
-├── CMakeLists.txt (or .pro)
-└── README.md
-```
-
----
-
-## Planned Features
-
-- [x] Connect to COM ports.
-- [x] Set connection speed.
-- [x] Find available ports.
-- [x] Macro interface.
-- [x] Support for TSC scripts.
-- [x] Save logs to a file.
-- [x] Different color themes.
-- [x] Automatic firmware updates (optional).
-
----
 
 ## Build and Run
 
@@ -123,7 +95,7 @@ To build this project you need:
 
 - Qt 6.x
 - CMake 3.16+ or qmake
-- A C++17 compiler
+- A C++23 compiler
 
 ```bash
 mkdir build
